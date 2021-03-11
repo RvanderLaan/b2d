@@ -15,6 +15,7 @@ Inspiration
 DevLog
 - Adding support for WASM in CRA using CRACO: https://dev.to/nicolasrannou/wasm-in-create-react-app-4-in-5mn-without-ejecting-cf6
 - Hot-reload after re-compiling WASM using `yarn build:wasm`: Use yarn link: `cd b2d-core/pkg && yarn link && cd ../.. && yarn link b2d-core`
+  Edit: Doesn't seem to work with webpack (doesn't put the correct headers in there). So, just yarn install each time (no linking)
 
 ## Default CRA readme:
 
