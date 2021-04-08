@@ -1,6 +1,7 @@
 // "Inspired" by https://github.com/codec-abc/Yew-WebRTC-Chat/blob/master/src/chat/chat_model.rs
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
+use wasm_bindgen_test::console_log;
 use web_sys::*;
 
 use crate::scene::web_rtc_manager::*;
@@ -15,10 +16,10 @@ use wasm_bindgen::prelude::*;
 // Encoding/decoding messages with Serde: https://serde.rs/
 // TODO: look into the how's and why's
 // use base64;
-// #[allow(unused_imports)]
-// use serde::{Deserialize, Serialize};
+#[allow(unused_imports)]
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Vec2D {
   x: f32,
   y: f32,
@@ -32,6 +33,16 @@ pub struct Transform {
     scale: Vec2D,
 }
 
+impl Default for Transform {
+    fn default() -> Transform {
+        Transform {
+            location: Vec2D::default(),
+            rotation: 0.,
+            scale: Vec2D{x: 1., y: 1.},
+        }
+   }
+}
+
 #[derive(Clone, Debug)]
 pub struct Shape {
   id: i32,
@@ -42,13 +53,13 @@ pub struct Shape {
   // layer ?
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Camera {
   transform: Transform,
   zoom: f32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Scene {
   shapes: Vec<Shape>,
   main_camera: Camera,
@@ -77,6 +88,30 @@ impl ActionHandler {
 pub struct SceneModel {
   web_rtc_manager: Rc<RefCell<WebRTCManager>>,
   scene: Scene,
+
+  value: String, // TODO: what is "value"?
+}
+
+//
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MessageSender {
+    Me,
+    Other,
+}
+
+#[derive(Clone, Debug)]
+pub struct Message {
+    sender: MessageSender,
+    content: String,
+}
+
+impl Message {
+    pub fn new(content: String, sender: MessageSender) -> Message {
+        Message {
+            content: content,
+            sender: sender,
+        }
+    }
 }
 
 // All action types (at least, those sent over WebRTC)
@@ -99,25 +134,25 @@ pub enum Msg {
 impl SceneModel {
 
     pub fn create() -> Self {
-        let web_rtc_manager = WebRTCManager::create_default(link.clone());
+        let web_rtc_manager = WebRTCManager::create_default();
 
         let rc = Rc::new(RefCell::new(web_rtc_manager));
 
         let model = SceneModel {
             web_rtc_manager: rc.clone(),
             scene: Scene{
-                main_camera: Camera{}
+                main_camera: Camera::default(),
+                shapes: vec!(),
             },
-            link,
             value: "".into(),
-            chat_value: "".into(),
-            node_ref: NodeRef::default(),
+            // chat_value: "".into(),
+            // node_ref: NodeRef::default(),
         };
 
         model
   }
 
-  fn update(&mut self, msg: Self::Message) {
+  fn update(&mut self, msg: Msg) -> bool {
     match msg {
       Msg::StartAsServer => {
         self.web_rtc_manager
@@ -139,7 +174,7 @@ impl SceneModel {
 
     Msg::UpdateWebRTCState(web_rtc_state) => {
       self.value = "".into();
-      let debug = ChatModel::get_debug_state_string(&web_rtc_state);
+      let debug = SceneModel::get_debug_state_string(&web_rtc_state);
       console::log_1(&debug.into());
 
       // let debug = self.get_serialized_offer_and_candidates();
@@ -152,22 +187,21 @@ impl SceneModel {
   }
 
   Msg::ResetWebRTC => {
-      let web_rtc_manager = WebRTCManager::create_default(self.link.clone());
+      let web_rtc_manager = WebRTCManager::create_default();
       let rc = Rc::new(RefCell::new(web_rtc_manager));
       self.web_rtc_manager = rc;
-      self.messages = vec![];
-      self.chat_value = "".into();
+      self.scene = Scene::default();
       self.value = "".into();
 
       let re_render = true;
       return re_render;
   }
 
-  Msg::UpdateInputValue(val) => {
-      self.value = val;
-      let re_render = true;
-      return re_render;
-  }
+//   Msg::UpdateInputValue(val) => {
+//       self.value = val;
+//       let re_render = true;
+//       return re_render;
+//   }
 
   Msg::ValidateOffer => {
     let state = self.web_rtc_manager.borrow().get_state();
@@ -213,37 +247,56 @@ impl SceneModel {
     return re_render;
 }
 
-Msg::NewMessage(message) => {
-    self.messages.push(message);
-    self.scroll_top();
-    let re_render = true;
-    return re_render;
-}
-
-Msg::Send => {
-    let content = self.chat_value.clone();
-    let my_message = Message::new(content.clone(), MessageSender::Me);
-    self.messages.push(my_message);
-    self.web_rtc_manager.borrow().send_message(content);
-    self.chat_value = "".into();
-    self.scroll_top();
-    let re_render = true;
-    return re_render;
-}
+// Msg::Send => {
+//     let content = self.chat_value.clone();
+//     let my_message = Message::new(content.clone(), MessageSender::Me);
+//     self.messages.push(my_message);
+//     self.web_rtc_manager.borrow().send_message(content);
+//     self.chat_value = "".into();
+//     self.scroll_top();
+//     let re_render = true;
+//     return re_render;
+// }
 
 Msg::Disconnect => {
-    let web_rtc_manager = WebRTCManager::create_default(self.link.clone());
+    // TODO: Re-construct the scene?
+    let web_rtc_manager = WebRTCManager::create_default();
     let rc = Rc::new(RefCell::new(web_rtc_manager));
     self.web_rtc_manager = rc;
-    self.messages = vec![];
-    self.chat_value = "".into();
     self.value = "".into();
     let re_render = true;
     return re_render;
 }
+        Msg::UpdateScene(_) => {
+            return false
+        }
+        Msg::Send => {
+            return false
+        }
     }
   }
 
+
+  fn get_debug_state_string(state: &State) -> String {
+    match state {
+        State::DefaultState => "Default State".into(),
+        State::Server(connection_state) => format!(
+            "{}\nice gathering: {:?}\nice connection: {:?}\ndata channel: {:?}\n",
+            "Server",
+            connection_state.ice_gathering_state,
+            connection_state.ice_connection_state,
+            connection_state.data_channel_state,
+        ),
+
+        State::Client(connection_state) => format!(
+            "{}\nice gathering: {:?}\nice connection: {:?}\ndata channel: {:?}\n",
+            "Client",
+            connection_state.ice_gathering_state,
+            connection_state.ice_connection_state,
+            connection_state.data_channel_state,
+        ),
+    }
+}
 
 
 

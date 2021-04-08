@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::*;
 
-use crate::chat::chat_model::*;
+use crate::scene::scene_model::*;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -13,10 +13,6 @@ use std::str;
 use base64;
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
-#[allow(unused_imports)]
-use yew::services::{ConsoleService, IntervalService, Task, TimeoutService};
-#[allow(unused_imports)]
-use yew::{html, App, Callback, Component, ComponentLink, Html, InputData, ShouldRender};
 
 type SingleArgClosure = Closure<dyn FnMut(JsValue)>;
 type SingleArgJsFn = Box<dyn FnMut(JsValue)>;
@@ -87,11 +83,10 @@ pub struct WebRTCManager {
     exit_offer_or_answer_early: bool,
     ice_candidates: Vec<IceCandidate>,
     offer: String,
-    parent_link: ComponentLink<ChatModel>,
 }
 
 impl WebRTCManager {
-    pub fn create_default(link: ComponentLink<ChatModel>) -> WebRTCManager {
+    pub fn create_default() -> WebRTCManager {
         let web_rtc_manager = WebRTCManager {
             state: State::DefaultState,
             rtc_peer_connection: None,
@@ -108,7 +103,6 @@ impl WebRTCManager {
             promise_exception_handlers: vec![],
             ice_candidates: Vec::new(),
             offer: "".into(),
-            parent_link: link,
             exit_offer_or_answer_early: false,
         };
 

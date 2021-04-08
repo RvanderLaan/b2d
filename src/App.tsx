@@ -20,6 +20,8 @@ function App() {
           Learn React
         </a>
         <button onClick={testWasm}>Test WASM</button>
+
+        <canvas id="canvas" height="150" width="150"></canvas>
       </header>
     </div>
   );
