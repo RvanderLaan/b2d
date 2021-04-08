@@ -1,7 +1,6 @@
 // "Inspired" by https://github.com/codec-abc/Yew-WebRTC-Chat/blob/master/src/chat/chat_model.rs
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
-use wasm_bindgen_test::console_log;
 use web_sys::*;
 
 use crate::scene::web_rtc_manager::*;
@@ -87,7 +86,7 @@ impl ActionHandler {
 // the "main" manager
 pub struct SceneModel {
   web_rtc_manager: Rc<RefCell<WebRTCManager>>,
-  scene: Scene,
+  pub scene: Scene, // shouldn't be public, but, yeah.
 
   value: String, // TODO: what is "value"?
 }
@@ -149,10 +148,16 @@ impl SceneModel {
             // node_ref: NodeRef::default(),
         };
 
+        let mut model_callback = |msg: Msg| {
+            model.update(msg);
+        };
+
+        web_rtc_manager.set_model_callback(model_callback);
+
         model
   }
 
-  fn update(&mut self, msg: Msg) -> bool {
+  pub fn update(&mut self, msg: Msg) -> bool {
     match msg {
       Msg::StartAsServer => {
         self.web_rtc_manager

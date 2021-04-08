@@ -60,6 +60,7 @@ features = [
   'WebGlProgram',
   'WebGlShader',
   'Window',
+  'console',
 
   # WebRTC
   #"MessageEvent",

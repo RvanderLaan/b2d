@@ -14,7 +14,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
 pub fn main() {
-    let model = SceneModel::create();
-    let renderer = Renderer{scene: model.scene};
-    renderer.start()
+    let mut model = SceneModel::create();
+    let renderer = Renderer{scene: &mut model.scene};
+    renderer.start();
 }

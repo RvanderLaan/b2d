@@ -83,6 +83,7 @@ pub struct WebRTCManager {
     exit_offer_or_answer_early: bool,
     ice_candidates: Vec<IceCandidate>,
     offer: String,
+    model_callback: Option<Box<dyn FnMut(Msg)>>,
 }
 
 impl WebRTCManager {
@@ -104,9 +105,24 @@ impl WebRTCManager {
             ice_candidates: Vec::new(),
             offer: "".into(),
             exit_offer_or_answer_early: false,
+            model_callback: None,
         };
 
         web_rtc_manager
+    }
+
+    pub fn set_model_callback(&mut self, c: impl FnMut(Msg) + 'static) {
+        self.model_callback = Some(Box::new(c));
+    }
+
+    pub fn call_model_callback(self, msg: Msg) -> bool {
+        match self.model_callback {
+            None => false,
+            Some(mut cb) => {
+                cb(msg);
+                true
+            }
+        }
     }
 
     pub fn send_message(&self, message_content: String) {
@@ -245,8 +261,7 @@ impl WebRTCManager {
 
             web_rtc_manager_rc_clone
                 .borrow()
-                .parent_link
-                .send_message(Msg::ResetWebRTC);
+                .call_model_callback(Msg::ResetWebRTC);
         }) as SingleArgJsFn);
 
         let connection_string = Rc::new(connection_string.clone());
@@ -434,8 +449,7 @@ impl WebRTCManager {
 
             web_rtc_manager
                 .borrow()
-                .parent_link
-                .send_message(Msg::UpdateWebRTCState(web_rtc_state));
+                .call_model_callback(Msg::UpdateWebRTCState(web_rtc_state));
         }) as SingleArgJsFn);
 
         channel_status_change_closure
@@ -448,10 +462,10 @@ impl WebRTCManager {
             let msg_content: String = message_event.data().as_string().unwrap();
             let msg = Message::new(msg_content, MessageSender::Other);
 
-            web_rtc_manager
-                .borrow()
-                .parent_link
-                .send_message(Msg::NewMessage(msg));
+            // TODO: parse scene -> callback with new scene?
+            // web_rtc_manager
+            //     .borrow()
+            //     .call_model_callback(Msg::NewMessage(msg));
         }) as SingleArgJsFn);
 
         on_data
@@ -522,8 +536,7 @@ impl WebRTCManager {
 
                 web_rtc_manager
                     .borrow()
-                    .parent_link
-                    .send_message(Msg::UpdateWebRTCState(web_rtc_state));
+                    .call_model_callback(Msg::UpdateWebRTCState(web_rtc_state));
             }) as SingleArgJsFn);
 
         on_ice_connection_state_change
@@ -560,8 +573,7 @@ impl WebRTCManager {
 
                 web_rtc_manager
                     .borrow()
-                    .parent_link
-                    .send_message(Msg::UpdateWebRTCState(web_rtc_state));
+                    .call_model_callback(Msg::UpdateWebRTCState(web_rtc_state));
             }) as SingleArgJsFn);
 
         on_ice_gathering_state_change
