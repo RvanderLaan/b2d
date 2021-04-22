@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::Scene;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -10,11 +12,17 @@ use web_sys::{WebGlProgram, WebGlRenderingContext, WebGlShader};
 // - Keeping it simple for now: Just draw flat shaded polygons (need a tessalator maybe) and simple GL_LINE outline
 
 // For now, renderer gets reference to scene, and draws everything
-pub struct Renderer<'a> {
-    scene: &'a mut Scene,
+pub struct Renderer {
+    scene: Rc<Scene>, // a read-only ref-counted pointer to the scene
 }
 
-impl<'a> Renderer<'a> {
+impl Renderer {
+    pub fn create(scene: Rc<Scene>) -> Self {
+        return Renderer{
+            scene,
+        }
+    }
+
     pub fn start(self) -> Result<(), JsValue> {
         let document = web_sys::window().unwrap().document().unwrap();
         let canvas = document.get_element_by_id("canvas").unwrap();
@@ -39,8 +47,10 @@ impl<'a> Renderer<'a> {
             &context,
             WebGlRenderingContext::FRAGMENT_SHADER,
             r#"
+        precision highp float;
         void main() {
-            gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+            vec3 col = gl_FragCoord.rgb;
+            gl_FragColor = vec4(col, 1.0);
         }
     "#,
         )?;
