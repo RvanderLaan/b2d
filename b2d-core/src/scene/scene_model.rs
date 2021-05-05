@@ -1,9 +1,7 @@
-// "Inspired" by https://github.com/codec-abc/Yew-WebRTC-Chat/blob/master/src/chat/chat_model.rs
-use web_sys::*;
+use macroquad::prelude::*;
 
 // use crate::scene::web_rtc_manager::*;
 
-use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
 
@@ -13,26 +11,19 @@ use std::str;
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Default)]
-pub struct Vec2D {
-  x: f32,
-  y: f32,
-}
-
-
 #[derive(Clone, Debug)]
 pub struct Transform {
-    location: Vec2D,
-    rotation: f32,
-    scale: Vec2D,
+    pub location: Vec2,
+    pub rotation: f32,
+    pub scale: Vec2,
 }
 
 impl Default for Transform {
     fn default() -> Transform {
         Transform {
-            location: Vec2D::default(),
+            location: Vec2::default(),
             rotation: 0.,
-            scale: Vec2D{x: 1., y: 1.},
+            scale: vec2(1., 1.),
         }
    }
 }
@@ -42,21 +33,110 @@ pub struct Shape {
   id: i32,
   transform: Transform,
 //   name: str,
-  points: Vec<Vec2D>,
+  points: Vec<Vec2>,
 //   edges/faces?
   // layer ?
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Camera {
-  transform: Transform,
-  zoom: f32,
+  pub transform: Transform,
+  pub zoom: f32,
+  cursor_grab: bool,
+}
+
+impl Default for Camera {
+  fn default() -> Camera {
+      Camera {
+          transform: Transform::default(),
+          zoom: 1.,
+          cursor_grab: true,
+      }
+ }
+}
+
+impl Camera {
+
+  // would be nice to have initialize() for cursor grab
+
+  fn update(&mut self) {
+
+    // Based on
+    // https://github.com/not-fl3/macroquad/blob/master/examples/camera_transformations.rs
+    if is_key_down(KeyCode::W) {
+      self.transform.location.y += 0.03;
+    }
+    if is_key_down(KeyCode::S) {
+      self.transform.location.y -= 0.03;
+    }
+    if is_key_down(KeyCode::A) {
+      self.transform.location.x -= 0.03;
+    }
+    if is_key_down(KeyCode::D) {
+      self.transform.location.x += 0.03;
+    }
+
+    // pan when cursor is at screen edge?
+    let pan_border_width = 8.; 
+    let mouse_pos: Vec2 = mouse_position().into();
+    let pan_speed = 0.01;
+    
+
+    if mouse_pos.x < pan_border_width {
+      self.transform.location.x -= pan_speed;
+    }
+    if mouse_pos.y < pan_border_width {
+      self.transform.location.y += pan_speed;
+    }
+    if mouse_pos.x > screen_width() - pan_border_width && mouse_pos.x <= screen_width() {
+      self.transform.location.x += pan_speed;
+    }
+    if mouse_pos.y > screen_height() - pan_border_width && mouse_pos.y <= screen_height() {
+      self.transform.location.y -= pan_speed;
+    }
+
+    if is_key_pressed(KeyCode::Escape) {
+      self.cursor_grab = !self.cursor_grab;
+      set_cursor_grab(self.cursor_grab);
+    }
+
+    match mouse_wheel() {
+      (_x, y) if y != 0.0 => {
+          // Normalize mouse wheel values is browser (chromium: 53, firefox: 3)
+          #[cfg(target_arch = "wasm32")]
+          let y = if y < 0.0 {
+              -1.0
+          } else if y > 0.0 {
+              1.0
+          } else {
+              0.0
+          };
+          if is_key_down(KeyCode::LeftControl) {
+              self.zoom *= 1.1f32.powf(y);
+          } else {
+              self.transform.rotation += 10.0 * y;
+              self.transform.rotation = match self.transform.rotation {
+                  angle if angle >= 360.0 => angle - 360.0,
+                  angle if angle < 0.0 => angle + 360.0,
+                  angle => angle,
+              }
+          }
+      }
+      _ => (),
+  }
+  }
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct Scene {
-  shapes: Vec<Shape>,
-  main_camera: Camera,
+  pub shapes: Vec<Shape>,
+  pub main_camera: Camera,
+}
+
+impl Scene {
+  pub fn update(&mut self) {
+    self.main_camera.update();
+  }
 }
 
 pub struct ActionHandler {
@@ -154,6 +234,10 @@ impl SceneModel {
 
   pub fn get_scene(self) -> Rc<Scene> {
       Rc::new(self.scene)
+  }
+
+  pub fn update(&mut self) {
+    self.scene.update();
   }
 
 //   pub fn update(&mut self, msg: Msg) -> bool {
