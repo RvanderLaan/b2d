@@ -142,14 +142,14 @@ fn profiler_window(ui: &mut Ui, state: &mut ProfilerState) {
     .or_else(|| state.frames_buffer.get(0));
 
   ui.separator();
-  ui.group(hash!(), Vec2::new(255., 300.), |ui| {
+  ui.group(hash!(), Vec2::new(255., 100.), |ui| {
     if let Some(frame) = frame {
       for (n, zone) in frame.zones.iter().enumerate() {
         zone_ui(ui, zone, n + 1);
       }
     }
   });
-  ui.group(hash!(), Vec2::new(253., 300.), |ui| {
+  ui.group(hash!(), Vec2::new(253., 100.), |ui| {
     let queries = telemetry::gpu_queries();
 
     for query in queries {
@@ -159,10 +159,11 @@ fn profiler_window(ui: &mut Ui, state: &mut ProfilerState) {
         &format!("{}: {:.3}ms {:.1}(1/t)", query.0, t, 1.0 / t),
       );
     }
+
+    if ui.button(None, "sample gpu") {
+      telemetry::sample_gpu_queries();
+    }
   });
-  if ui.button(None, "sample gpu") {
-    telemetry::sample_gpu_queries();
-  }
 }
 
 pub fn profiler(params: ProfilerParams) {
@@ -241,7 +242,7 @@ pub fn profiler(params: ProfilerParams) {
       vec2(520., 440.),
     )
     .label("Profiler")
-    .titlebar(false)
+    // .titlebar(false)
     .ui(&mut *root_ui(), |ui| {
       let tab = ui.tabbar(hash!(), Vec2::new(200.0, 20.0), &["profiler", "scene"]);
 

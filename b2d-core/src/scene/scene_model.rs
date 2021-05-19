@@ -1,9 +1,12 @@
-use macroquad::prelude::*;
+use macroquad::{models::*, prelude::*};
 
 // use crate::scene::web_rtc_manager::*;
 
-use std::rc::Rc;
 use std::str;
+use std::{
+  hash::{self, Hash},
+  rc::Rc,
+};
 
 // Encoding/decoding messages with Serde: https://serde.rs/
 // TODO: look into the how's and why's
@@ -30,12 +33,47 @@ impl Default for Transform {
 
 #[derive(Clone, Debug)]
 pub struct Shape {
-  id: i32,
+  id: u64,
   transform: Transform,
-  //   name: str,
+  pub name: String,
   points: Vec<Vec2>,
   //   edges/faces?
   // layer ?
+}
+
+impl Shape {
+  pub fn get_mesh(&self) -> Mesh {
+    // TODO: should cache this
+    Mesh {
+      vertices: self
+        .points
+        .iter()
+        .map(|p| macroquad::models::Vertex {
+          position: [p.x, p.y, 0.].into(),
+          uv: [0., 0.].into(),
+          color: [255, 255, 255, 255].into(),
+        })
+        .collect(),
+      indices: (0..(self.points.len()))
+        .map(|x| x as u16)
+        .collect::<Vec<u16>>(),
+      texture: None,
+    }
+  }
+}
+
+pub fn create_default_square(id: u64) -> Shape {
+  return Shape {
+    id: id,
+    transform: Default::default(),
+    name: "Square".to_string(),
+    points: vec![
+      vec2(-0.5, 0.5),
+      vec2(0.5, 0.5),
+      vec2(0.5, -0.5),
+      vec2(-0.5, -0.5),
+    ],
+  };
 }
 
 #[derive(Clone)]
