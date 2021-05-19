@@ -22,7 +22,9 @@
     "build": "craco build",
     "test": "craco test",
     "build:wasm-comment": "cannot get linked package to work (link:./b2d-core/pkg), so just copying after building",
-    "build:wasm": "cd b2d-core && wasm-pack build && cp -r ./pkg/* ../node_modules/b2d-core"
+    "build:wasm": "cd b2d-core && wasm-pack build && cp -r ./pkg/* ../node_modules/b2d-core",
+    "build:macroquad-wasm": "cd b2d-core && cargo build --release --target wasm32-unknown-unknown --out-dir ../public-mq  -Z unstable-options",
+    "start2": "basic-http-server -a 127.0.0.1:3000 ./public-mq"
   },
   "eslintConfig": {
     "extends": [
