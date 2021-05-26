@@ -6,6 +6,10 @@ use macroquad::ui::{
   Id, Ui,
 };
 
+use egui_macroquad::*;
+
+// use egui_macroquad::{}
+
 mod scene;
 use scene::scene_model::*;
 
@@ -92,6 +96,53 @@ fn gui(scene: &mut Scene) {
   let sidebar_width = 400.;
 
   let sidebar_id = hash!("main_sidebar");
+
+  egui_macroquad::ui(|egui_ctx| {
+    // TODO: there also is egui::SidePanel:: but it only has ::left(), not right :/
+    egui::Window::new("B2D egui window")
+      .anchor(egui::Align2::RIGHT_TOP, [0., 0.])
+      .title_bar(false)
+      .fixed_size([sidebar_width, screen_height()])
+      .show(egui_ctx, |ui| {
+        ui.label("Test");
+
+        // Blender sidebar:
+        // - Scene outliner
+        // - Properties panel (tabs)
+        //  [scene]
+        //  - Render
+        //  - Output
+        //  - Scene
+        //  - World
+        //  [object]
+        //  - Object
+        //  - Modififiers
+        //  - ...
+        //  - Materials
+
+        // Outliner: Loop over scene entities
+        ui.group(|ui| {
+          ui.label("<<ENTITIES>>");
+          for s in scene.shapes.iter_mut() {
+            // TODO: Selected state
+            if ui.selectable_label(false, &s.name).changed() {
+              println!("Clicked {}", s.name);
+            }
+          }
+
+          ui.separator();
+
+          if ui.button( "Add shape").clicked() {
+            scene.shapes.push(create_default_square(hash!().into()));
+          }
+        });
+
+        ui.group(|ui| {
+          ui.add(egui::tab)
+        })
+      });
+  });
+
   widgets::Window::new(
     sidebar_id,
     vec2(screen_width() - sidebar_width, 0.),
@@ -100,41 +151,13 @@ fn gui(scene: &mut Scene) {
   .titlebar(false)
   .movable(true)
   .ui(&mut *root_ui(), |ui| {
-    // Blender sidebar:
-    // - Scene outliner
-    // - Properties panel (tabs)
-    //  [scene]
-    //  - Render
-    //  - Output
-    //  - Scene
-    //  - World
-    //  [object]
-    //  - Object
-    //  - Modififiers
-    //  - ...
-    //  - Materials
-
     ui.move_window(sidebar_id, vec2(screen_width() - sidebar_width, 0.));
 
     // TODO: Collapse button? blender doesn't have it..
 
     // ui.group(hash!(), vec2(sidebar_width, 400.), |ui| {
     // Group::new(hash!("outliner"), vec2(sidebar_width, 55.)).ui(ui, |ui| {
-    tree_node_custom(ui, hash!(), "Scene", true, |ui| {
-      // TODO: Loop over scene entities
-      ui.label(None, "<<ENTITIES>>");
-      for s in scene.shapes.iter_mut() {
-        ui.button(None, "Select");
-        // ui.same_line(0.);
-        ui.input_text(hash!(), "Name", &mut s.name);
-      }
-
-      ui.separator();
-
-      if ui.button(None, "Add shape") {
-        scene.shapes.push(create_default_square(hash!().into()));
-      }
-    });
+    tree_node_custom(ui, hash!(), "Scene", true, |ui| {});
     // });
 
     // ui.separator();
@@ -207,9 +230,9 @@ async fn main() {
 
     clear_background(RED);
 
-    root_ui().push_skin(&skin);
-    gui(&mut model.scene);
-    root_ui().pop_skin();
+    // root_ui().push_skin(&skin);
+    // gui(&mut model.scene);
+    // root_ui().pop_skin();
 
     screen_rect.w = screen_width();
     screen_rect.h = screen_height();
@@ -234,7 +257,7 @@ async fn main() {
       // - draw a face at every face!
     }
 
-    draw_text("IT WORKS!", 20.0, 20.0, 30.0, DARKGRAY);
+    // draw_text("IT WORKS!", 20.0, 20.0, 30.0, DARKGRAY);
 
     set_default_camera();
     draw_text(
@@ -248,6 +271,10 @@ async fn main() {
       30.0,
       DARKGRAY,
     );
+
+    // Finally, draw the GUI using EGUI (Dear Imgui rust alternative, runs in WASM)
+    gui(&mut model.scene);
+    egui_macroquad::draw();
 
     profiler::profiler(Default::default());
 
