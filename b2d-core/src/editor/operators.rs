@@ -10,18 +10,18 @@ use scene::scene_model::*;
 // follows the Command pattern
 // TODO: Invoke/cancel + perform/undo feels like 2 commands in 1
 // Inspiration: 
-trait Operator {
+pub trait Operator {
   // Start the operation (e.g. enable a widget)
-  fn invoke(&mut self, c: &mut Editor);
+  fn invoke(&mut self, e: &mut Editor);
   
   // Cancel whatever the invoke call did
-  fn cancel(&mut self, c: &mut Editor);
+  fn cancel(&mut self, e: &mut Editor);
 
   // Perform the operation
-  fn perform(&mut self, c: &mut Editor);
+  fn perform(&mut self, e: &mut Editor);
   
   // Undo the effects of the operation perform call
-  fn undo(&mut self, c: &mut Editor);
+  fn undo(&mut self, e: &mut Editor);
 }
 
 pub struct SelectObject {
@@ -70,4 +70,44 @@ impl Operator for SelectObject {
       e.scene_context.selected_objects.remove(pos);
     }
   }
+}
+
+pub struct ToggleEditMode;
+
+impl Operator for ToggleEditMode {
+    fn invoke(&mut self, e: &mut Editor) {
+        todo!()
+    }
+
+    fn cancel(&mut self, e: &mut Editor) {
+        todo!()
+    }
+
+    fn perform(&mut self, e: &mut Editor) {
+        e.mode = EditorMode::EditMesh;
+    }
+
+    fn undo(&mut self, e: &mut Editor) {
+      e.mode = EditorMode::Object;
+    }
+}
+
+pub struct ToggleObjectMode;
+
+impl Operator for ToggleObjectMode {
+    fn invoke(&mut self, e: &mut Editor) {
+        todo!()
+    }
+
+    fn cancel(&mut self, e: &mut Editor) {
+        todo!()
+    }
+
+    fn perform(&mut self, e: &mut Editor) {
+        e.mode = EditorMode::Object;
+    }
+
+    fn undo(&mut self, e: &mut Editor) {
+      e.mode = EditorMode::EditMesh;
+    }
 }

@@ -37,9 +37,15 @@ pub struct Shape {
   transform: Transform,
   pub name: String,
   points: Vec<Vec2>,
+  indices: Vec<u16>, // 
+  // edges: Vec<Pair<u16>>,
+  // faces: Vec<Edge>,
+
   //   edges/faces?
   // layer ?
 }
+
+// 
 
 impl Shape {
   pub fn get_mesh(&self) -> Mesh {
@@ -54,9 +60,7 @@ impl Shape {
           color: [255, 255, 255, 255].into(),
         })
         .collect(),
-      indices: (0..(self.points.len()))
-        .map(|x| x as u16)
-        .collect::<Vec<u16>>(),
+      indices: self.indices.clone(),
       texture: None,
     }
   }
@@ -73,6 +77,7 @@ pub fn create_default_square() -> Shape {
       vec2(0.5, -0.5),
       vec2(-0.5, -0.5),
     ],
+    indices: vec![0, 1, 2, 0, 2, 3]
   };
 }
 

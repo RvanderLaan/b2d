@@ -2,7 +2,10 @@ use std::collections::HashSet;
 use std::{
   hash::{self, Hash},
   rc::Rc,
+  str::FromStr,
 };
+
+use std::fmt;
 
 use macroquad::{models::*, prelude::*};
 use egui_macroquad::*;
@@ -84,7 +87,9 @@ impl EditorUI {
 
           // Outliner: Loop over scene entities
           ui.group(|ui| {
-            ui.label("<<ENTITIES>>");
+            if scene.shapes.len() == 0 {
+              ui.label("No shapes created yet.");
+            }
             for s in scene.shapes.iter_mut() {
               // TODO: Selected state
               if ui.selectable_label(false, &s.name).changed() {
@@ -186,6 +191,7 @@ struct SDFEditMode {
   // ...
 }
 
+#[derive(Debug, PartialEq)]
 pub enum EditorMode {
   Object,
   EditMesh,
@@ -193,6 +199,12 @@ pub enum EditorMode {
   // enum in [‘EDIT_MESH’, ‘EDIT_CURVE’, ‘EDIT_SURFACE’, ‘EDIT_TEXT’, ‘EDIT_ARMATURE’, ‘EDIT_METABALL’, ‘EDIT_LATTICE’, ‘POSE’,
   // ‘SCULPT’, ‘PAINT_WEIGHT’, ‘PAINT_VERTEX’, ‘PAINT_TEXTURE’, ‘PARTICLE’, ‘OBJECT’, ‘PAINT_GPENCIL’, ‘EDIT_GPENCIL’, ‘SCULPT_GPENCIL’,
   // ‘WEIGHT_GPENCIL’, ‘VERTEX_GPENCIL’], default ‘EDIT_MESH’, (readonly)
+}
+
+impl fmt::Display for EditorMode {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+      write!(f, "{:?}", self)
+  }
 }
 
 impl Default for EditorMode {
@@ -236,7 +248,7 @@ impl Editor {
     // TODO: de-serialize scene
     todo!()
   }
-  pub fn save_to_file(&self, pathToFile: String) {
+  pub fn save_to_file(&self, path_to_file: String) {
     // TODO: serialize scene
     todo!()
   }

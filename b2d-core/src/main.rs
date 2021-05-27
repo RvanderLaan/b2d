@@ -1,3 +1,4 @@
+
 use macroquad::{prelude::*, ui::Skin};
 
 use macroquad::ui::{
@@ -5,6 +6,10 @@ use macroquad::ui::{
   widgets::{self, Group, TreeNode},
   Id, Ui,
 };
+
+use std::borrow::BorrowMut;
+use std::collections;
+use std::ops::Deref;
 
 use egui_macroquad::*;
 
@@ -15,6 +20,7 @@ use scene::scene_model::*;
 
 mod editor;
 use editor::editor::*;
+use editor::operators::*;
 
 mod profiler;
 
@@ -35,13 +41,69 @@ fn draw_cross(x: f32, y: f32, color: Color) {
   draw_line(x, y - size, x, y + size, thickness, color);
 }
 
+/// Draw a grid centered at (0, 0, 0)
+pub fn draw_grid_2d(slices: u32, spacing: f32) {
+  let half_slices = (slices as i32) / 2;
+  for i in -half_slices..half_slices + 1 {
+      let color = if i == 0 {
+          Color::new(0.55, 0.55, 0.55, 0.75)
+      } else {
+          Color::new(0.75, 0.75, 0.75, 0.75)
+      };
+
+      draw_line_3d(
+          vec3(i as f32 * spacing, -half_slices as f32 * spacing, 0.),
+          vec3(i as f32 * spacing, half_slices as f32 * spacing, 0.),
+          color,
+      );
+      draw_line_3d(
+          vec3(-half_slices as f32 * spacing,  i as f32 * spacing, 0.),
+          vec3(half_slices as f32 * spacing,  i as f32 * spacing, 0.),
+          color,
+      );
+  }
+}
+
+#[derive(Default)]
+struct OperatorController {
+  undo_stack: Vec<Box<dyn Operator>>,
+  redo_stack: Vec<Box<dyn Operator>>,
+  max_stack_size: usize,
+}
+
+impl OperatorController {
+  fn run_operator(&mut self, operator: &mut Box<dyn Operator>, editor: &mut Editor) {
+    // let x = operator.deref();
+    // self.undo_stack.push(operator.into()); TODO:
+
+    operator.perform(editor);
+
+    if self.undo_stack.len() > self.max_stack_size {
+      // self.undo_stack.drain(self.max_stack_size);
+      // TODO: truncate stack, but on the left, not the right
+    }
+  }
+  fn undo(&mut self, editor: &mut Editor) {
+    if let Some(op) = &mut self.undo_stack.pop() {
+      // self.redo_stack.push(op);
+      op.undo(editor);
+    }
+  }
+  fn redo(&mut self, editor: &mut Editor) {
+    if let Some(op) = &mut self.redo_stack.pop() {
+      // self.undo_stack.push(op);
+      op.perform(editor);
+    }
+  }
+}
+
 #[macroquad::main("New scene* • B2D")]
-async fn main() {
-  let mut model = SceneModel::create();
+async fn main() -> ! {
   // let scene = &mut model.scene;
 
   let mut editor = Editor::default();
   let mut editor_ui = EditorUI::default();
+  let mut controller = OperatorController::default();
 
   let mut screen_rect = Rect {
     x: 0.,
@@ -67,9 +129,9 @@ async fn main() {
   // https://github.com/not-fl3/macroquad/blob/master/examples/ui.rs
 
   loop {
-    model.scene.update();
+    editor.scene.update();
 
-    clear_background(RED);
+    clear_background(Color::from_rgba(25, 25, 25, 255));
 
     // root_ui().push_skin(&skin);
     // gui(&mut model.scene);
@@ -88,9 +150,10 @@ async fn main() {
     draw_circle(screen_width() - 30.0, screen_height() - 30.0, 15.0, YELLOW);
 
     // TODO:
-    draw_grid(32, 1.);
+    draw_grid_2d(32, 1.);
+    draw_rectangle_lines(-16., -16., 32., 32., 0.5, Color::from_rgba(255, 0, 0, 255));
 
-    for shape in model.scene.shapes.iter() {
+    for shape in editor.scene.shapes.iter() {
       draw_mesh(&shape.get_mesh());
       // If edit mode is enabled, and active object is this shape,
       // - draw a point at every point!
@@ -104,19 +167,47 @@ async fn main() {
     draw_text(
       &format!(
         "x {:.2}, y{:.2}",
-        model.scene.main_camera.cam2d().target.x,
-        model.scene.main_camera.cam2d().target.y
+        editor.scene.main_camera.cam2d().target.x,
+        editor.scene.main_camera.cam2d().target.y
       ),
       20.0,
       20.0,
       30.0,
       DARKGRAY,
     );
+    draw_text(
+      &format!(
+        "Mode: {}",
+        editor.mode,
+      ),
+      20.0,
+      50.0,
+      30.0,
+      DARKGRAY,
+    );
 
-    // Finally, draw the GUI using EGUI (Dear Imgui rust alternative, runs in WASM)
+    // TODO: put things in here
     // editor.update();
 
+    if is_key_down(KeyCode::LeftControl) {
+      if is_key_down(KeyCode::Z) {
+        controller.undo(&mut editor);
+      } else if is_key_down(KeyCode::Y) {
+        controller.redo(&mut editor);
+      }
+    } else if is_key_down(KeyCode::Tab) {
+      if editor.mode == EditorMode::Object {
+        controller.run_operator(&mut Box::new(ToggleEditMode{}), &mut editor)
+      } else if editor.mode == EditorMode::EditMesh {
+        // controller.run_operator(Box::new(ToggleObjectMode{}), &mut editor)
+
+      }
+    }
+
+    // Finally, update the GUI using EGUI (Dear Imgui rust alternative, runs in WASM)
     editor_ui.update(&mut editor);
+
+    // and draw it
     egui_macroquad::draw();
 
     profiler::profiler(Default::default());
