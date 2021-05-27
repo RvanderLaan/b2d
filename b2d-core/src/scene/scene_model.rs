@@ -62,9 +62,9 @@ impl Shape {
   }
 }
 
-pub fn create_default_square(id: u64) -> Shape {
+pub fn create_default_square() -> Shape {
   return Shape {
-    id: id,
+    id: 0, // TODO:: RANDOM HASH
     transform: Default::default(),
     name: "Square".to_string(),
     points: vec![
